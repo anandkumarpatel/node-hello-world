@@ -8,9 +8,10 @@ sudo docker rmi `sudo docker images -q`
 sudo docker rmi -f `sudo docker images -q`
 sudo docker rmi -f `sudo docker images -q`
 cd /runnable/node-hello-world
-for CUR in 1 5 10 50 100; do
-	echo "" > data
-	echo "START P $CUR"	
+./load.sh #do first pull
+echo "" > data
+for CUR in `seq 1 1000`; do
+	echo "START p $CUR"	
 	for i in `seq 1 $CUR`; do
 	  ./load.sh &
 	done
@@ -18,5 +19,6 @@ for CUR in 1 5 10 50 100; do
 	for job in `jobs -p`; do
 	  wait $job
 	done
-	cat data
+	echo "" >> data  
 done
+cat data
