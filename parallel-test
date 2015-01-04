@@ -1,15 +1,19 @@
 #!/bin/bash
-cd /runnable/node-hello-world
-./load.sh #do first pull
-echo "" > data
-for CUR in `seq 100 100 1000`; do
-	echo "START p $CUR" >> data
+# ./parallel-test.sh <time log>
+echo "" > $1
+for CUR in `seq 1 50`; do
+  ./clean.sh
+  echo "START $CUR" >> $1
+  START="$(date +%s%N)"
 	for i in `seq 1 $CUR`; do
-	  ./load.sh &
+	  ./load.sh $1 &
 	done
 
 	for job in `jobs -p`; do
 	  wait $job
 	done
+  START="$(($(date +%s%N)-START))"
+  M="$((START/1000000))"
+  echo "$CUR_TEST_TIME_MS " $M >> $1
 done
-cat data
+cat $1

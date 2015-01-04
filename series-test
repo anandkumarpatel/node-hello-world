@@ -1,15 +1,8 @@
 #!/bin/bash
-sudo docker kill `sudo docker ps -q`
-sudo docker kill `sudo docker ps -q`
-sudo docker rm `sudo docker ps -aq`
-sudo docker rm -f `sudo docker ps -aq`
-sudo docker rm -f `sudo docker ps -aq`
-sudo docker rmi `sudo docker images -q`
-sudo docker rmi -f `sudo docker images -q`
-sudo docker rmi -f `sudo docker images -q`
-cd /runnable/node-hello-world
-echo "" > data
-for CUR in `seq 1 1000`; do
+# ./series-test.sh <time log>
+echo "" > $1
+./clean.sh
+for CUR in `seq 1 50`; do
   ./load.sh
 done
-cat data
+cat $1

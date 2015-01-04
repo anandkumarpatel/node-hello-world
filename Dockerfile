@@ -1,5 +1,3 @@
-FROM dockerfile/nodejs
+FROM ubuntu
 ADD . /app
-WORKDIR /app
-EXPOSE 52738
-CMD node server.js
+CMD echo
