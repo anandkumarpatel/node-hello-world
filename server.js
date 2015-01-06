@@ -1,6 +1,7 @@
 var http = require('http');
+var port = process.env.PORT || 52738;
 http.createServer(function (req, res) {
   res.writeHead(200, {'Content-Type': 'text/plain'});
   res.end('Hello DJ FaZe\n');
-}).listen(52738);
-console.log('Server running at http://127.0.0.1:52738/');
+}).listen(port);
+console.log('Server running at http://127.0.0.1:'+port);
