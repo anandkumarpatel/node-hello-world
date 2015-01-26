@@ -3,6 +3,6 @@
 echo "" > $1
 ./clean.sh
 for CUR in `seq 1 50`; do
-  ./load.sh
+  ./runContainer.sh
 done
 cat $1
