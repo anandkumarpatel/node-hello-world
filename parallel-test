@@ -6,7 +6,7 @@ for CUR in `seq 1 50`; do
   echo "START $CUR" >> $1
   START="$(date +%s%N)"
 	for i in `seq 1 $CUR`; do
-	  ./load.sh $1 &
+	  ./runContainer.sh $1 &
 	done
 
 	for job in `jobs -p`; do
