@@ -1,5 +1,10 @@
 #!/bin/bash
 service docker stop
-rm -rf /var/lib/docker
+umount -l /docker
+mkfs -t ext4 /dev/xvdb
+mount -a
 service docker start
-docker pull ubuntu
+until docker pull ubuntu; do
+  sleep 1
+done
+
