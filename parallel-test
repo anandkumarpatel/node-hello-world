@@ -3,7 +3,7 @@
 echo "BUILD_TIME_MS,EXIT_CODE,NUM_PARALLEL,TEST_TIME" > $1
 for CUR in `seq 1 50`; do
   ./clean.sh
-  echo ",,$CUR" >> $1
+  echo ",,$CUR," >> $1
   START="$(date +%s%N)"
 	for i in `seq 1 $CUR`; do
 	  ./runContainer.sh $1 &
