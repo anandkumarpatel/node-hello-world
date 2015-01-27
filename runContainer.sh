@@ -6,4 +6,4 @@ E=$?
 T="$(($(date +%s%N)-T))"
 M="$((T/1000000))"
 # csv format BUILD_TIME_MS, EXIT_CODE
-echo  "$M,$E" >> $1
+echo  "$M,$E,," >> $1
