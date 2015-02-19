@@ -1,7 +1,7 @@
 #!/bin/bash
 # ./runContainer.sh <time log>
 T="$(date +%s%N)"
-sudo docker build --no-cache . >> /dev/null 2>&1
+docker build --no-cache . >> /dev/null 2>&1
 E=$?
 T="$(($(date +%s%N)-T))"
 M="$((T/1000000))"

@@ -1,0 +1,35 @@
+#!/bin/bash
+# ./parallel-test.sh <time log>
+CUR=50
+rm $1
+./clean.sh > /dev/null
+rm -rf /home/ubuntu/docker1
+rm -rf /home/ubuntu/docker2
+
+docker pull anandkumarpatel/dind
+docker run --privileged -d -v /home/ubuntu/docker1:/var/lib/docker -p 4444:4444 -e PORT=4444 anandkumarpatel/dind
+docker run --privileged -d -v /home/ubuntu/docker2:/var/lib/docker -p 4445:4444 -e PORT=4444 anandkumarpatel/dind
+sleep 5
+
+export DOCKER_HOST=tcp://localhost:4445
+./runContainer.sh ../_tmp 
+export DOCKER_HOST=tcp://localhost:4444
+./runContainer.sh ../_tmp
+
+START="$(date +%s%N)"
+for i in `seq 1 $CUR`; do
+  if [[ "$i" == "25"  ]]; then
+    export DOCKER_HOST=tcp://localhost:4445
+  fi
+  ./runContainer.sh $1 &
+done
+
+for job in `jobs -p`; do
+  wait $job
+done
+START="$(($(date +%s%N)-START))"
+M="$((START/1000000))"
+echo TOTAL TIME $M
+echo AVG   TIME 
+awk '{ sum += $1; n++} END { if (n > 0) print sum / n; }' $1
+echo

@@ -1,9 +1,10 @@
 #!/bin/bash
 # ./parallel-test.sh <time log>
-echo "BUILD_TIME_MS,EXIT_CODE,NUM_PARALLEL,TEST_TIME" > $1
-for CUR in `seq 1 50`; do
-  ./clean.sh
-  START="$(date +%s%N)"
+CUR=50
+rm $1
+./clean.sh > /dev/null
+./runContainer.sh ../_tmp 
+        START="$(date +%s%N)"
 	for i in `seq 1 $CUR`; do
 	  ./runContainer.sh $1 &
 	done
@@ -11,8 +12,10 @@ for CUR in `seq 1 50`; do
 	for job in `jobs -p`; do
 	  wait $job
 	done
-  START="$(($(date +%s%N)-START))"
-  M="$((START/1000000))"
-  echo ",,$CUR,$M" >> $1
-done
-cat $1
+	START="$(($(date +%s%N)-START))"
+	M="$((START/1000000))"
+
+echo TOTAL TIME $M
+echo AVG   TIME 
+awk '{ sum += $1; n++} END { if (n > 0) print sum / n; }' $1
+echo

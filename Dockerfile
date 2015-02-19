@@ -1,3 +1,3 @@
-FROM ubuntu
-ADD . /app
-CMD echo
+from ubuntu
+add . /
+cmd sleep 1

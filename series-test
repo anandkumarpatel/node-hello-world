@@ -1,12 +1,15 @@
 #!/bin/bash
 # ./series-test.sh <time log>
-echo "BUILD_TIME_MS,EXIT_CODE,TEST_TIME" > $1
-./clean.sh
+rm $1
+./clean.sh > /dev/null
+./runContainer.sh ../_tmp 
 START="$(date +%s%N)"
 for CUR in `seq 1 50`; do
-  ./runContainer.sh
+  ./runContainer.sh $1
 done
 START="$(($(date +%s%N)-START))"
 M="$((START/1000000))"
-echo ",,$M" >> $1
-cat $1
+echo TOTAL TIME $M
+echo AVG   TIME 
+awk '{ sum += $1; n++} END { if (n > 0) print sum / n; }' $1
+echo
