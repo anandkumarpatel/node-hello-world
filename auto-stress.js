@@ -1,4 +1,5 @@
 var exec = require('child_process').exec;
+var execSync = require('child_process').execSync;
 var fs = require('fs');
 /**
  * runs specified number of stress containers in backround
@@ -8,17 +9,17 @@ var fs = require('fs');
  * @param  {Function} cb    (err)
  */
 function runStressContainers (num, image, args, cb) {
-  console.log('runBuild', num, image, args);
   var cmd = 'docker run -d ' + image + ' ' + args;
   var count = 0;
+  createContainer();
   function createContainer (err) {
-    console.log('createContainer', err, 'count/max', count+'/'+num);
+    if (err) { console.log('createContainer err', err); }
     if (err) { return cb(err); }
-    if (count === num) { return cb(); }
+    if (count >= num) { return cb(); }
+    console.log('----createContainer', 'count/max', count+1+'/'+num);
     count++;
     exec(cmd, createContainer);
   }
-  createContainer();
 }
 /**
  * runs build and returns time it took to run
@@ -28,11 +29,10 @@ function runStressContainers (num, image, args, cb) {
  *                         time in ms
  */
 function runBuild (path, args, cb) {
-  console.log('runBuild', path, args);
   var start = new Date();
-  var cmd = 'docker build ' + path + ' ' + args;
+  var cmd = 'docker build ' + args + ' ' + path;
   exec(cmd, function (err) {
-    console.log('runBuild', err);
+    if (err) { console.log('****runBuild err', err); }
     if (err) { return cb(err); }
     cb(null, new Date() - start);
   });
@@ -45,17 +45,17 @@ function runBuild (path, args, cb) {
 function clean (ignoreImages, cb) {
   // kill all running images
   exec('docker kill `docker ps -q`', function (err) {
-    console.log('kill containers', err);
+    if (err) { console.log('docker kill err', err); }
     // remove all containers
-    exec('docker rm `docker ps -aq`', function (err) {
-      console.log('rm containers', err);
+    exec('docker rm -f `docker ps -aq`', function (err) {
+      if (err) { console.log('docker rm err', err); }
       // list all images
-      var list = "docker images | grep -v '" + ignoreImages.join('\\|') + "' | awk '{print $1}'";
-      exec('docker rmi `' + list + '`', function (err) {
-        console.log('rm images', err);
+      var list = "docker images | grep -v '" + ignoreImages.join('\\|') + "' | awk '{print $3}'";
+      exec('docker rmi -f `' + list + '`', function (err) {
+        if (err) { console.log('docker rmi err', err); }
         // restart deamon
         exec('service docker restart', function (err) {
-          console.log('docker restart', err);
+          if (err) { console.log('docker restart err', err); }
           cb();
         });
       });
@@ -64,7 +64,6 @@ function clean (ignoreImages, cb) {
 }
 
 function runSingleTest (opts, cb) {
-  console.log('runSingleTest', opts);
   var buildPath = opts.buildPath;
   var buildArgs = opts.buildArgs;
   var stressImage = opts.stressImage;
@@ -72,7 +71,7 @@ function runSingleTest (opts, cb) {
   var stressArgs = opts.stressArgs;
   var ignoreImages = opts.ignoreImages;
   var retryCount = 5;
-  ignoreImages.push(stressImage);
+  runTest();
   function runTest () {
     if (retryCount < 0) { cb(new Error('fail to run test')); }
     clean(ignoreImages, function () {
@@ -88,15 +87,15 @@ function runSingleTest (opts, cb) {
 }
 
 function runSinglePermutaion (opts, cb) {
-  console.log('runSinglePermutaion', opts);
-  var outFilePath = opts.outPath + '/' + stressNum;
+  var outFilePath = opts.outFilePath + '/' + opts.stressNum;
   var out = fs.appendFileSync.bind(fs, outFilePath);
   var numTrials = opts.numTrials;
   var count = 0;
   out('trial,time\n');
+  runTest();
   function runTest () {
-    if (count === numTrials) { return cb(); }
-    console.log('runTest', 'count/max', count+'/'+numTrials);
+    if (count >= numTrials) { return cb(); }
+    console.log('--runTest', 'count/max', count+1+'/'+numTrials);
     runSingleTest(opts, function (err, time) {
       if (err) {
         fs.unlinkSync(outFilePath);
@@ -110,15 +109,15 @@ function runSinglePermutaion (opts, cb) {
 }
 
 function runSuite (opts, cb) {
-  console.log('runSuite', opts);
   var maxStress = opts.maxStress;
-  var count = 1;
+  var count = opts.minStress;
+  runPerms();
   function runPerms () {
-    if (maxStress === count) { return cb(); }
+    if (count >= maxStress) { return cb(); }
+    console.log('runSuite', 'count/max', count+'/'+maxStress);
     opts.stressNum = count;
     runSinglePermutaion(opts, function (err, time) {
-      console.log('runSuite', err, 'count/max', count+'/'+maxStress);
-      count++;
+      count += opts.incStress;
       runPerms();
     });
   }
@@ -127,16 +126,20 @@ function runSuite (opts, cb) {
 function begin () {
   opts = {
     outFilePath: process.env.OUT_PATH || '../testOutput',
-    numTrials: process.env.NUM_TRIALS || 10,
-    maxStress: process.env.MAX_STRESS || 128,
+    numTrials: Number(process.env.NUM_TRIALS) || 10,
+    maxStress: Number(process.env.MAX_STRESS) || 128,
+    minStress: Number(process.env.MIN_STRESS) || 0,
+    incStress: Number(process.env.INC_STRESS) || 1,
     buildPath: process.env.BUILD_PATH || '.',
-    buildArgs: process.env.BUILD_ARGS || '',
+    buildArgs: process.env.BUILD_ARGS || '--no-cache -t test/test',
     stressImage: process.env.STRESS_IMAGE || 'jess/stress',
-    stressArgs: process.env.STRESS_ARGS || '--cpu 1 --vm 1 --vm-bytes 1G --vm-hang 0',
-    ignoreImages: process.env.IGNORE_IMAGES && process.env.IGNORE_IMAGES.split(',') || ['ubuntu'],
+    stressArgs: process.env.STRESS_ARGS || 'stress --cpu 1 --vm 1 --vm-bytes 1G --vm-hang 0',
+    ignoreImages: process.env.IGNORE_IMAGES && process.env.IGNORE_IMAGES.split(',') || ['IMAGE', 'ubuntu', 'jess/stress'],
   };
+  execSync('rm -rf '+opts.outFilePath+' || echo');
+  execSync('mkdir -p '+opts.outFilePath+' || echo');
   var start = new Date();
-  console.log('start', runSuite, opts);
+  console.log('start', opts);
   runSuite(opts, function (err) {
     console.log('FINISHED', new Date() - start);
   });
